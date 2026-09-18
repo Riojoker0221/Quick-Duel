@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Duel</title>
+    <link rel="stylesheet" href="style.css?v=anubis-prophet-balance-20260916-1">
+
+    <style>
+        #qd-language-switcher {
+            position: fixed;
+            top: 14px;
+            right: 14px;
+            z-index: 99999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border: 1px solid #34343f;
+            border-radius: 10px;
+            background: rgba(18, 18, 24, 0.96);
+            color: #fff;
+            font-family: Arial, "Noto Sans CJK JP", "Noto Sans CJK SC", sans-serif;
+            font-size: 13px;
+            box-shadow: 0 4px 14px rgba(0,0,0,.25);
+        }
+
+        #qd-language-switcher label { opacity: .75; }
+
+        #qd-language-select {
+            min-height: 34px;
+            border: 1px solid #4a4a58;
+            border-radius: 7px;
+            background: #24242d;
+            color: #fff;
+            padding: 4px 8px;
+            font: inherit;
+            cursor: pointer;
+        }
+
+        @media (max-width: 620px) {
+            #qd-language-switcher {
+                position: static;
+                width: fit-content;
+                margin: 10px auto 0;
+            }
+        }
+
+        /* Daily leaderboard / yesterday winner */
+        .yesterday-winner-card {
+            margin: 18px 0 16px;
+            padding: 16px 18px;
+            border: 1px solid rgba(255, 211, 82, 0.75);
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.16), rgba(255, 255, 255, 0.035));
+            box-shadow: 0 0 24px rgba(255, 193, 7, 0.12);
+            text-align: center;
+        }
+
+        .yesterday-winner-title {
+            font-size: 0.9rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #ffd65a;
+        }
+
+        .yesterday-winner-name {
+            margin-top: 6px;
+            font-size: clamp(1.35rem, 3vw, 2rem);
+            font-weight: 900;
+            color: #fff6cf;
+            overflow-wrap: anywhere;
+        }
+
+        .yesterday-winner-meta {
+            margin-top: 4px;
+            font-size: 0.86rem;
+            opacity: 0.78;
+        }
+
+        #leaderboard-reset-label {
+            display: block;
+            margin-top: 2px;
+            font-size: 0.78rem;
+            opacity: 0.72;
+        }
+
+        .daily-best-panel {
+            margin: 12px 0 16px;
+            padding: 12px 14px;
+            border: 1px solid #34343f;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.025);
+        }
+
+        .daily-best-panel h4 {
+            margin: 0 0 8px;
+            font-size: 0.95rem;
+        }
+
+        .daily-best-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.84rem;
+        }
+
+        .daily-best-table th,
+        .daily-best-table td {
+            padding: 7px 8px;
+            border-bottom: 1px solid #2c2c35;
+            text-align: left;
+        }
+
+        .daily-best-table th:last-child,
+        .daily-best-table td:last-child {
+            text-align: right;
+            width: 86px;
+        }
+
+        .daily-best-table tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .online-battle-player-badges {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 8px auto 12px;
+            font-weight: 800;
+            font-size: 0.9rem;
+        }
+
+        .online-player-badge {
+            padding: 6px 10px;
+            border: 1px solid #3c3c49;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.04);
+        }
+
+        .online-player-badge.current-leader {
+            border-color: rgba(255, 211, 82, 0.85);
+            box-shadow: 0 0 14px rgba(255, 193, 7, 0.14);
+        }
+
+
+        .balance-notice-board {
+            margin: 14px 0 18px;
+            padding: 16px 18px;
+            border: 2px solid #4b4b58;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.045);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+        }
+
+        .balance-notice-board h4 {
+            margin: 0 0 12px;
+            font-size: 1.28rem;
+            letter-spacing: 0.02em;
+        }
+
+        .balance-change-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            font-size: 1.16rem;
+            font-weight: 900;
+        }
+
+        .balance-change-item {
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.045);
+            border: 1px solid #3d3d49;
+        }
+
+        .balance-change-down { color: #ff5d6c; }
+        .balance-change-up { color: #55d67a; }
+        .balance-change-rework { color: #d7b4ff; }
+        .balance-change-neutral { color: #e6e6ef; }
+        .balance-change-new { color: #67d9ff; }
+
+        #leaderboard-list .leaderboard-rank {
+            display: inline-block;
+            margin-right: 0.35rem;
+        }
+
+        /* Cumulative Online PvP stats */
+        .game-username-panel {
+            margin-top: 12px;
+            padding: 13px 14px;
+            border: 1px solid #4a4a58;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.035);
+        }
+
+        .game-username-title {
+            margin-bottom: 8px;
+            font-weight: 800;
+            font-size: 0.95rem;
+        }
+
+        .game-username-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        #game-username-input {
+            flex: 1 1 220px;
+            min-height: 38px;
+            border: 1px solid #555563;
+            border-radius: 8px;
+            background: #202028;
+            color: #fff;
+            padding: 7px 10px;
+            font: inherit;
+        }
+
+        #save-game-username-button {
+            min-height: 38px;
+            font-weight: 800;
+        }
+
+        .game-username-help {
+            margin-top: 8px;
+            font-size: 0.78rem;
+            opacity: 0.68;
+            line-height: 1.4;
+        }
+
+        .game-username-status {
+            margin-top: 7px;
+            font-size: 0.86rem;
+            font-weight: 700;
+        }
+
+        .online-stats-panel {
+            margin: 18px 0 6px;
+            padding: 16px;
+            border: 1px solid #34343f;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.025);
+        }
+
+        .online-stats-title-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .online-stats-title-row h4 {
+            margin: 0;
+            font-size: 1.08rem;
+        }
+
+        #online-stats-since {
+            font-size: 0.78rem;
+            opacity: 0.68;
+        }
+
+        .online-stats-summary {
+            margin: 8px 0 14px;
+            padding: 9px 11px;
+            border-radius: 9px;
+            background: rgba(255,255,255,0.035);
+            font-size: 0.86rem;
+            opacity: 0.9;
+        }
+
+        .stats-section + .stats-section {
+            margin-top: 18px;
+        }
+
+        .stats-section h5 {
+            margin: 0 0 8px;
+            font-size: 0.95rem;
+        }
+
+        .stats-table-wrap {
+            max-height: 390px;
+            overflow: auto;
+            border: 1px solid #30303a;
+            border-radius: 10px;
+        }
+
+        .stats-table {
+            width: 100%;
+            min-width: 620px;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+        }
+
+        .stats-table th,
+        .stats-table td {
+            padding: 8px 9px;
+            border-bottom: 1px solid #2c2c35;
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .stats-table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: #202028;
+            font-weight: 800;
+        }
+
+        .stats-table th:first-child,
+        .stats-table td:first-child {
+            text-align: left;
+        }
+
+        .stats-table tbody tr:last-child th,
+        .stats-table tbody tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .stats-table tbody tr:hover {
+            background: rgba(255,255,255,0.035);
+        }
+
+        .stats-empty-cell {
+            text-align: center !important;
+            opacity: 0.65;
+            padding: 18px !important;
+        }
+
+    
+    /* Leaderboard crown: CSS-owned so the current #1 always shows even if the row is rerendered. */
+    #leaderboard-list .leaderboard-row:first-child .leaderboard-name::before {
+      content: "👑 ";
+      display: inline;
+    }
+</style>
+</head>
+<body>
+
+<div id="qd-language-switcher">
+    <label id="qd-language-label" for="qd-language-select">Language</label>
+    <select id="qd-language-select" aria-label="Language">
+        <option value="en">English</option>
+        <option value="ja">日本語</option>
+        <option value="zh">简体中文</option>
+    </select>
+</div>
+
+<div id="qd-build-marker" style="
+    position:fixed;
+    left:8px;
+    bottom:6px;
+    z-index:99998;
+    font:11px Arial,sans-serif;
+    opacity:.45;
+    color:#fff;
+    pointer-events:none;
+">
+    MAJOR BALANCE V19 • CHIMERA I18N • 2026-09-17
+</div>
+
+<div class="app">
+    <section id="selection-screen">
+        <h1>⚔️ QUICK DUEL</h1>
+
+        <p class="subtitle">
+            Ban one character, draft two unique characters, and defeat the enemy team.
+        </p>
+
+        <div class="game-mode-select">
+            <button id="pvp-mode-button" class="mode-button active">
+                👥 Local PvP
+            </button>
+            <button id="ai-mode-button" class="mode-button">
+                🤖 VS AI
+            </button>
+            <button id="online-mode-button" class="mode-button">
+                🌐 Online PvP
+            </button>
+        </div>
+
+        <div id="online-room-panel" class="online-room-panel hidden">
+            <h3>🌐 ONLINE PVP</h3>
+
+            <div class="balance-notice-board">
+                <h4>📢 MAJOR BALANCE UPDATE / 版本大改动</h4>
+                <div class="balance-change-list">
+                    <span class="balance-change-item balance-change-down">▼ Joker</span>
+                    <span class="balance-change-item balance-change-down">▼ Puppeteer</span>
+                    <span class="balance-change-item balance-change-down">▼ Devil</span>
+                    <span class="balance-change-item balance-change-neutral">↔ Assassin</span>
+                    <span class="balance-change-item balance-change-rework">⟳ Anubis</span>
+                    <span class="balance-change-item balance-change-up">▲ Cure Mage</span>
+                    <span class="balance-change-item balance-change-up">▲ Blast Mage</span>
+                    <span class="balance-change-item balance-change-up">▲ Angel</span>
+                    <span class="balance-change-item balance-change-new">★ NEW Chimera</span>
+                </div>
+            </div>
+
+            <div class="online-auth-panel">
+                <div class="online-auth-main">
+                    <button id="google-signin-button" class="google-signin-button">
+                        Sign in with Google
+                    </button>
+                    <button id="guest-signin-button" class="guest-signin-button">
+                        Continue as Guest
+                    </button>
+                    <button id="google-signout-button" class="hidden">
+                        Sign Out
+                    </button>
+
+                    <div class="online-account-text">
+                        <strong id="online-user-display">
+                            Sign in with Google or continue as Guest to play Online PvP.
+                        </strong>
+                        <span id="online-user-score">Score: —</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="game-username-panel" class="game-username-panel hidden">
+                <div id="game-username-title" class="game-username-title">
+                    🎮 Set Your Game Username
+                </div>
+                <div class="game-username-row">
+                    <input
+                        id="game-username-input"
+                        type="text"
+                        maxlength="20"
+                        placeholder="2-20 characters"
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
+                    <button id="save-game-username-button" type="button">
+                        Save Username
+                    </button>
+                </div>
+                <div id="game-username-help" class="game-username-help">
+                    Usernames are unique. You can change your username once every 7 days. Rooms, leaderboards, and match results use your game username instead of your Google name.
+                </div>
+                <div id="game-username-status" class="game-username-status"></div>
+            </div>
+
+            <div class="online-room-actions">
+                <button id="create-room-button" disabled>
+                    Create Room
+                </button>
+
+                <div class="join-room-row">
+                    <input
+                        id="room-code-input"
+                        type="text"
+                        maxlength="6"
+                        placeholder="ROOM CODE"
+                        autocomplete="off"
+                        spellcheck="false"
+                    >
+                    <button id="join-room-button" disabled>
+                        Join Room
+                    </button>
+                </div>
+            </div>
+
+            <div id="online-status" class="online-status">
+                Sign in with Google or continue as Guest.
+            </div>
+
+            <div id="room-code-display" class="room-code-display hidden"></div>
+
+            <div id="side-select-panel" class="side-select-panel hidden">
+                <h4>Choose Your Side</h4>
+                <div class="side-select-buttons">
+                    <button id="side-a-button">Choose Team A</button>
+                    <button id="side-b-button">Choose Team B</button>
+                </div>
+                <div id="side-select-status" class="online-pick-note"></div>
+            </div>
+
+            <div id="yesterday-winner-card" class="yesterday-winner-card">
+                <div id="yesterday-winner-title" class="yesterday-winner-title">
+                    🏆 Winner of Yesterday
+                </div>
+                <div id="yesterday-winner-name" class="yesterday-winner-name">
+                    No winner yesterday
+                </div>
+                <div id="yesterday-winner-meta" class="yesterday-winner-meta">—</div>
+            </div>
+
+            <div class="leaderboard-panel">
+                <div class="leaderboard-title-row">
+                    <h4>🏆 PvP Leaderboard</h4>
+                    <div>
+                        <span>Win +1 • Loss -1</span>
+                        <span id="leaderboard-reset-label">Resets daily at 00:00 ET</span>
+                    </div>
+                </div>
+                <div id="leaderboard-list" class="leaderboard-list">
+                    Sign in or continue as Guest to view the leaderboard.
+                </div>
+            </div>
+
+            <div id="daily-best-panel" class="daily-best-panel">
+                <h4 id="daily-best-title">👑 Daily Best Records</h4>
+                <table class="daily-best-table">
+                    <thead>
+                        <tr>
+                            <th id="daily-best-player-header">Player</th>
+                            <th id="daily-best-count-header">Daily Bests</th>
+                        </tr>
+                    </thead>
+                    <tbody id="daily-best-body">
+                        <tr><td colspan="2">No daily winners recorded yet.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="online-stats-panel" class="online-stats-panel">
+                <div class="online-stats-title-row">
+                    <h4 id="online-stats-title">📊 Online PvP Stats — Version 0.2</h4>
+                    <span id="online-stats-since">Version 0.2 only • Since Chimera release • Completed matches only</span>
+                </div>
+
+                <div id="online-stats-summary" class="online-stats-summary">
+                    Sign in or continue as Guest to view stats.
+                </div>
+
+                <div class="stats-section">
+                    <h5 id="character-stats-title">Character Stats</h5>
+                    <div class="stats-table-wrap">
+                        <table class="stats-table">
+                            <thead>
+                                <tr>
+                                    <th id="character-header-character">Character</th>
+                                    <th id="character-header-uses">Uses</th>
+                                    <th id="character-header-record">W-L-D</th>
+                                    <th id="character-header-win-rate">Win Rate</th>
+                                    <th id="character-header-bans">Bans</th>
+                                    <th id="character-header-ban-rate">Ban Rate</th>
+                                    <th id="character-header-bp-rate">BP Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody id="character-stats-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="stats-section">
+                    <h5 id="team-stats-title">Team Stats</h5>
+                    <div class="stats-table-wrap">
+                        <table class="stats-table">
+                            <thead>
+                                <tr>
+                                    <th id="team-header-team">Team</th>
+                                    <th id="team-header-uses">Uses</th>
+                                    <th id="team-header-record">W-L-D</th>
+                                    <th id="team-header-win-rate">Win Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody id="team-stats-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h2 id="selection-title">TEAM A — BAN 1 CHARACTER</h2>
+
+        <div class="selected-teams">
+            <div>
+                <h3>TEAM A</h3>
+                <div id="team-a-selection">No characters selected</div>
+            </div>
+            <div>
+                <h3>TEAM B</h3>
+                <div id="team-b-selection">No characters selected</div>
+            </div>
+        </div>
+
+        <div id="character-grid" class="character-grid"></div>
+
+        <button id="confirm-team" class="confirm-button" disabled>
+            Confirm Team
+        </button>
+    </section>
+
+    <section id="battle-screen" class="hidden">
+        <div class="battle-header">
+            <div class="round-display">
+                ROUND <span id="round-number">1</span>
+            </div>
+
+            <h1>⚔️ QUICK DUEL</h1>
+
+            <div class="battle-header-actions">
+                <button id="surrender-button" class="small-button danger-button hidden">
+                    🏳️ Surrender
+                </button>
+                <button id="restart-button" class="small-button">
+                    New Game
+                </button>
+            </div>
+        </div>
+
+        <div id="online-battle-player-badges" class="online-battle-player-badges hidden">
+            <span id="online-team-a-player" class="online-player-badge">Team A: —</span>
+            <span>VS</span>
+            <span id="online-team-b-player" class="online-player-badge">Team B: —</span>
+        </div>
+
+        <h2 id="turn-title">Battle</h2>
+
+        <div class="battlefield">
+            <div class="team">
+                <h2>TEAM A</h2>
+                <div id="team-a-battle" class="team-characters"></div>
+            </div>
+
+            <div class="vs">VS</div>
+
+            <div class="team">
+                <h2>TEAM B</h2>
+                <div id="team-b-battle" class="team-characters"></div>
+            </div>
+        </div>
+
+        <div id="action-panel" class="action-panel">
+            <button id="attack-button">
+                ⚔️ <span>Attack</span>
+                <small id="attack-damage-preview" class="action-value">DMG 1</small>
+            </button>
+
+            <button id="defend-button">
+                🛡️ <span>Defend</span>
+                <small class="action-value">-1 DMG</small>
+            </button>
+
+            <button id="charge-button">
+                ⚡ <span>Charge</span>
+                <small class="action-value">+1C</small>
+            </button>
+
+            <button id="heal-button">
+                ❤️ <span>Heal</span>
+                <small id="heal-preview" class="action-value">+2 HP</small>
+            </button>
+
+            <button id="skill-button">
+                ✨ <span>Skill</span>
+                <small id="skill-resource-preview" class="action-value">Skill</small>
+            </button>
+
+            <button id="back-button" class="back-action-button" disabled>
+                ↩️ <span>Back</span>
+                <small class="action-value">Step</small>
+            </button>
+        </div>
+
+        <div id="context-panel" class="context-panel">
+            Choose an action.
+        </div>
+
+        <div id="online-postgame-panel" class="online-postgame-panel hidden">
+            <h3>Online Match Complete</h3>
+            <div id="online-postgame-message" class="postgame-message"></div>
+
+            <div class="postgame-actions">
+                <button id="rematch-button">🔁 Rematch</button>
+                <button id="exit-room-button">🚪 Exit Room</button>
+            </div>
+
+            <div id="rematch-status" class="online-pick-note"></div>
+        </div>
+
+        <div class="battle-log">
+            <h3>BATTLE LOG</h3>
+            <div id="battle-log-content"></div>
+        </div>
+    </section>
+</div>
+
+<script src="game.js?v=v22-anubis-execution-20260918-1"></script>
+
+<script>
+(function () {
+    const onlineButton = document.getElementById("online-mode-button");
+    const pvpButton = document.getElementById("pvp-mode-button");
+    const aiButton = document.getElementById("ai-mode-button");
+
+    const roomPanel = document.getElementById("online-room-panel");
+    const selectionTitle = document.getElementById("selection-title");
+    const characterGrid = document.getElementById("character-grid");
+    const confirmButton = document.getElementById("confirm-team");
+    const onlineStatus = document.getElementById("online-status");
+    const restartButton = document.getElementById("restart-button");
+
+    let onlineImportPromise = null;
+    let loading = false;
+
+    function showOnlineShell(message) {
+        pvpButton?.classList.remove("active");
+        aiButton?.classList.remove("active");
+        onlineButton?.classList.add("active");
+
+        roomPanel?.classList.remove("hidden");
+        confirmButton?.classList.add("hidden");
+        restartButton?.classList.add("hidden");
+
+        if (selectionTitle) {
+            selectionTitle.textContent = "ONLINE PVP";
+        }
+
+        if (characterGrid) {
+            characterGrid.innerHTML = "";
+        }
+
+        if (onlineStatus && message) {
+            onlineStatus.textContent = message;
+        }
+    }
+
+    function restoreOfflineModeShell() {
+        if (window.__QD_ONLINE_READY__) return;
+
+        onlineButton?.classList.remove("active");
+        roomPanel?.classList.add("hidden");
+        confirmButton?.classList.remove("hidden");
+        restartButton?.classList.remove("hidden");
+    }
+
+    function showLoadError(error) {
+        console.error("Quick Duel Online failed to load:", error);
+
+        showOnlineShell(
+            "Online PvP could not load. This is usually caused by a blocked Firebase/Google script, an old cached file, or a browser/network restriction."
+        );
+
+        if (!onlineStatus) return;
+
+        const detail = document.createElement("div");
+        detail.style.marginTop = "10px";
+        detail.style.fontSize = "0.9em";
+        detail.style.opacity = "0.85";
+        detail.textContent =
+            "Try Ctrl+F5, another browser/network, or check the browser Console. Error: " +
+            (error?.message || String(error));
+
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.textContent = "Retry Online System";
+        retry.style.marginTop = "10px";
+        retry.addEventListener("click", () => {
+            location.reload();
+        });
+
+        onlineStatus.appendChild(detail);
+        onlineStatus.appendChild(retry);
+    }
+
+    async function loadAndEnterOnline() {
+        // The important fix: the button reacts immediately even before
+        // Firebase has loaded.
+        showOnlineShell("Loading Online PvP...");
+
+        if (window.__QD_ONLINE_READY__ && window.QuickDuelOnline?.enterOnlineMode) {
+            window.QuickDuelOnline.enterOnlineMode();
+            return;
+        }
+
+        if (loading) return;
+        loading = true;
+
+        try {
+            if (!onlineImportPromise) {
+                onlineImportPromise =
+                    import("./online.js?v=v0.2-stats-chimera-reset-20260918-1");
+            }
+
+            await onlineImportPromise;
+
+            if (!window.QuickDuelOnline?.enterOnlineMode) {
+                throw new Error(
+                    "online.js loaded, but the Online entry API was not created. game.js and online.js may be from different versions."
+                );
+            }
+
+            window.QuickDuelOnline.enterOnlineMode();
+        } catch (error) {
+            onlineImportPromise = null;
+            showLoadError(error);
+        } finally {
+            loading = false;
+        }
+    }
+
+    onlineButton?.addEventListener("click", loadAndEnterOnline);
+
+    // If online.js failed to load, Local PvP / VS AI still restore the
+    // normal screen rather than leaving the Online panel stuck open.
+    pvpButton?.addEventListener("click", restoreOfflineModeShell);
+    aiButton?.addEventListener("click", restoreOfflineModeShell);
+
+    window.QuickDuelLoadOnline = loadAndEnterOnline;
+})();
+</script>
+
+<script src="language.js?v=v22-anubis-execution-20260918-1"></script>
+
+<script>
+(function () {
+    const select = document.getElementById("qd-language-select");
+    const label = document.getElementById("qd-language-label");
+
+    function updateLabel(lang) {
+        label.textContent =
+            lang === "ja" ? "言語" :
+            lang === "zh" ? "语言" :
+            "Language";
+    }
+
+    const saved = localStorage.getItem("quickDuelLanguage") || "en";
+    select.value = ["en", "ja", "zh"].includes(saved) ? saved : "en";
+    updateLabel(select.value);
+
+    if (window.QDLanguage) {
+        window.QDLanguage.setLanguage(select.value);
+    }
+
+    select.addEventListener("change", () => {
+        updateLabel(select.value);
+        window.QDLanguage?.setLanguage?.(select.value);
+    });
+})();
+</script>
+
+</body>
+</html>
